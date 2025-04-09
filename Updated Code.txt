@@ -1,0 +1,58 @@
+#reading the data
+import pandas as pd
+# Load the uploaded Lyme disease dataset again
+file_path = 'LymeDisease_9211_county.csv'
+df = pd.read_csv(file_path)
+# Display the first few rows and column names to understand the dataset structure
+df.head(), df.columns
+# Step 1: Reshape the dataset to long format for easier time-series and ML analysis
+df_long = df.melt(id_vars=["StateCode", "CountyCode", "StateName", "CountyName"],
+value_vars=["ConfirmedCount_1992_1996", "ConfirmedCount_1997_2001",
+                              "ConfirmedCount_2002_2006", "ConfirmedCount_2007_2011"],
+var_name="Period", value_name="Cases")
+# Step 2: Extract numeric years from period column
+df_long["StartYear"] = df_long["Period"].str.extract(r'_(\d{4})_').astype(float)
+# Step 3: Drop rows with missing case counts
+df_long.dropna(subset=["Cases"], inplace=True)
+# Step 4: Reset index and show the cleaned structure
+df_long.reset_index(drop=True, inplace=True)
+df_long.head()
+import matplotlib.pyplot as plt
+import seaborn as sns
+# Total cases by year
+yearly_cases = df_long.groupby("StartYear")["Cases"].sum().reset_index()
+
+plt.figure(figsize=(8, 4))
+sns.lineplot(data=yearly_cases, x="StartYear", y="Cases", marker="o")
+plt.title("Total Confirmed Lyme Disease Cases Over Time")
+plt.xlabel("Start Year of 5-Year Period")
+plt.ylabel("Total Cases")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+from sklearn.model_selection 
+import train_test_split
+from sklearn.ensemble 
+import RandomForestClassifier
+from sklearn.metrics 
+import accuracy_score, classification_report, confusion_matrix
+# Step 1: Define outbreak (if cases above median in that year)
+df_long["Outbreak"] = df_long.groupby("StartYear")["Cases"].transform(lambda x: x > x.median()).astype(int)
+# Step 2: Encode state as numerical feature
+df_long["StateCode"] = df_long["StateName"].astype("category").cat.codes
+# Step 3: Select features and labels
+features = ["StartYear", "StateCode"]
+X = df_long[features]
+y = df_long["Outbreak"]
+# Step 4: Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# Step 5: Train Random Forest model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+# Step 6: Evaluation
+acc = accuracy_score(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred)
+report = classification_report(y_test, y_pred, output_dict=True)
+
+acc, conf_matrix, pd.DataFrame(report).transpose()
